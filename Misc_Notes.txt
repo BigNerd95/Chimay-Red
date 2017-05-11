@@ -1,0 +1,34 @@
+[Mikrotik]
+    https://wikileaks.org/ciav7p1/cms/page_28049428.html
+    - For RouterOS 5.x
+        For ops, place binary in "/nova/bin", and place script in "/etc/rc.d/"
+
+    - For RouterOS 6.x
+        For ops, place binary in "/flash/bin", and place script in "/flash/etc/rc.d/"
+
+[Perseus]
+https://wikileaks.org/ciav7p1/cms/page_16384510.html
+(install log https://wikileaks.org/ciav7p1/cms/files/2015-04-16_063833-Perseus-Install_Log.log)
+
+    ChimayRed 4.5.1
+    [1/7/2015 2/7/2015 6/7/2015 7/7/2015 10/7/2015 13/7/2015 15/7/2015]
+        DUT3 - RB450G - Long Term Test
+            https://wikileaks.org/ciav7p1/cms/page_20250630.html
+
+    ChimayRed 4.6.1
+    [27/7/2015 28/7/2015 29/7/2015]
+        DUT4 - RB1100AH - v1.1.0 Notes
+            https://wikileaks.org/ciav7p1/cms/page_20251203.html
+            (Downgraded to ROS 6.30.1.  ChimayRed does not support 6.30.2)
+
+    ChimayRed 4.12
+    [10/2/2016 11/2/2016 12/2/2016 18/2/2016 19/2/2016]
+        DUT6 - RB800 - v1.3.0 Notes
+            https://wikileaks.org/ciav7p1/cms/page_50495490.html
+            (ROS: 6.30)
+
+
+[ChimayRed 3.7]
+    https://wikileaks.org/ciav7p1/cms/files/image2015-4-27%2010:46:48.png
+    Guide:
+        https://wikileaks.org/ciav7p1/cms/page_16385037.html
