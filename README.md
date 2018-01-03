@@ -30,3 +30,23 @@ Where:
 - PC IP: 192.168.8.5  
 
 (As the ROP is dynamically created, you have to extract the www binary from the RouterOS firmware, check that the running version is the same)
+
+# FAQ
+#### Where does one get the chimay-red.py file, that this tool kit relies on?  
+This is a reverse engineering of leaked CIA documentation.  
+There is no chimay-red.py publicly available.  
+
+#### I can't understand how the stack clash work.
+I'll update the PDF as soon as I have enough time, anyway:  
+We know that:  
+- each thread has 128KB of stack  
+- each stack of each thread is stacked on the top of the previous thread.  
+
+Thanks to Content-Length and alloca macro we can control the Stack Pointer and where the post data will be written.  
+If we send a Content-Length bigger than 128KB to socket of thread A, the Stack Pointer will point inside the stack of another thread (B) and so the POST data (of thread A) will be written inside the stack of thread B (in any position we want, we only need to adjust the Content-Length value).  
+So we now we can write a ROP chain in the stack of thread B starting from an a position where a return address is saved.
+When we close the socket of thread B, the ROP chain will start because the function that is waiting for data will return (but on our modified address).
+
+The ROP chain that executes bash commands is using "dlsym" (present in the PLT) to find the address of "system".  
+Once we have the address of system we construct the bash string looking for chunks of strings inside the binary and concatenating them in an unused area of memory.  
+Then we return to the address of system passing as argument the address of the created bash string.  
