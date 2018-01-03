@@ -44,7 +44,7 @@ We know that:
 
 Thanks to Content-Length and alloca macro we can control the Stack Pointer and where the post data will be written.  
 If we send a Content-Length bigger than 128KB to socket of thread A, the Stack Pointer will point inside the stack of another thread (B) and so the POST data (of thread A) will be written inside the stack of thread B (in any position we want, we only need to adjust the Content-Length value).  
-So we now we can write a ROP chain in the stack of thread B starting from an a position where a return address is saved.
+So now we can write a ROP chain in the stack of thread B starting from a position where a return address is saved.
 When we close the socket of thread B, the ROP chain will start because the function that is waiting for data will return (but on our modified address).
 
 The ROP chain that executes bash commands is using "dlsym" (present in the PLT) to find the address of "system".  
