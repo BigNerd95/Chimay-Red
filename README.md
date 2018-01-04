@@ -28,7 +28,9 @@ Where:
 - RouterOS IP: 192.168.8.1  
 - PC IP: 192.168.8.5  
 
-(As the ROP is dynamically created, you have to extract the www binary from the RouterOS firmware, check that the running version is the same)
+As the ROP is dynamically created, you have to extract the `www` binary from the RouterOS firmware.   
+(It's placed in `/nova/bin/`)  
+Check that the running version is the same.
 
 # FAQ
 #### Where does one get the chimay-red.py file, that this tool kit relies on?  
