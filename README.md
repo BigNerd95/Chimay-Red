@@ -30,7 +30,11 @@ Where:
 
 As the ROP is dynamically created, you have to extract the `www` binary from the RouterOS firmware.   
 (It's placed in `/nova/bin/`)  
-Check that the running version is the same.
+Check that the running version is the same.  
+To simplify extraction you can use:
+```
+$ ./getROSbin.py 6.38.4 x86 /nova/bin/www www_binary
+```
 
 # FAQ
 #### Where does one get the chimay-red.py file, that this tool kit relies on?  
