@@ -43,6 +43,19 @@ To simplify extraction you can use:
 $ ./getROSbin.py 6.38.4 x86 /nova/bin/www www_binary
 ```
 
+## StackClashMIPS  
+Stack clash exploit using two threads with ROP chain + shell code to run bash commands  
+On mips version of www the stack is RWX, so we can jump to the stack.
+
+You can run the same bash command as the x86 version.  
+The exploit in NOT dinamically created, so in versions different from 6.38.4 may not works.  
+
+### LCD  
+Funny command  
+```
+$ ./StackClashMIPS.py 192.168.8.1 80 "echo hello world > /dev/lcd"
+```
+
 # FAQ
 #### Where does one get the chimay-red.py file, that this tool kit relies on?  
 This is a reverse engineering of leaked CIA documentation.  
