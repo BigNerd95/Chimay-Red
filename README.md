@@ -72,6 +72,15 @@ If we send a Content-Length bigger than 128KB to socket of thread A, the Stack P
 So now we can write a ROP chain in the stack of thread B starting from a position where a return address is saved.  
 When we close the socket of thread B, the ROP chain will start because the function that is waiting for data will return (but on our modified address).
 
+##### x86
 The ROP chain that executes bash commands is using "dlsym" (present in the PLT) to find the address of "system".  
 Once we have the address of system we construct the bash string looking for chunks of strings inside the binary and concatenating them in an unused area of memory.  
 Then we return to the address of system passing as argument the address of the created bash string.  
+
+##### mips
+DEP is disabled on this version of www, so I can execute the stack.  
+But I cannot use system function because "/bin/sh" is not present on the file system, so I used execve directly.  
+A small ROP (3 gadgets) find the address of a location on the stack (where I put the shell code), and then jump to that address.  
+In the shell code I populate an array of 4 pointers with the address of the strings "/bin/bash", "-c", "your_shell_cmd" using the leaked address of the stack (the last pointer is left NULL).  
+Then I populate a0, a1, a2 with rispectively: address of "/bin/bash", address of the array populated at the preceeding step and the address of the NULL entry of the array.  
+At this point I can launch the syscall 4011 (execve) to execute my bash command.  
