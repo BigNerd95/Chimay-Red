@@ -55,6 +55,7 @@ Funny command
 ```
 $ ./StackClashMIPS.py 192.168.8.1 80 "echo hello world > /dev/lcd"
 ```
+![image](https://i.imgur.com/UXexzKU.jpg)
 
 # FAQ
 #### Where does one get the chimay-red.py file, that this tool kit relies on?  
