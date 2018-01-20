@@ -73,10 +73,11 @@ If we send a Content-Length bigger than 128KB to socket of thread A, the Stack P
 So now we can write a ROP chain in the stack of thread B starting from a position where a return address is saved.  
 When we close the socket of thread B, the ROP chain will start because the function that is waiting for data will return (but on our modified address).
 
-##### x86
-The ROP chain that executes bash commands is using "dlsym" (present in the PLT) to find the address of "system".  
-Once we have the address of system we construct the bash string looking for chunks of strings inside the binary and concatenating them in an unused area of memory.  
-Then we return to the address of system passing as argument the address of the created bash string.  
+##### x86  
+
+The ROP chain construct "system" string and "your_shell_cmd" string looking for chunks of strings inside the binary and concatenating them in an unused area of memory.  
+Then we return to "dlsym" function (present in the PLT) passing as argument the address of just created string "system" to find the address of "system" function.   
+Now we can return to the address of system passing as argument the address of the just created string "your_shell_cmd".  
 
 ##### mips
 DEP is disabled on this version of www, so I can execute the stack.  
