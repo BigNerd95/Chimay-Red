@@ -29,7 +29,10 @@ def get_pair(data):
 
     entries = data.split(b"M2")[1:]
     for entry in entries:
-        user, pass_encrypted = extract_user_pass_from_entry(entry)
+        try:
+            user, pass_encrypted = extract_user_pass_from_entry(entry)
+        except:
+            continue
 
         pass_plain = decrypt_password(user, pass_encrypted)
         user  = user.decode("ascii")
