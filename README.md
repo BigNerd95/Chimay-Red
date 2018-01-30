@@ -89,3 +89,7 @@ A small ROP (3 gadgets) find the address of a location on the stack (where I put
 In the shell code I populate an array of 4 pointers with the address of the strings "/bin/bash", "-c", "your_shell_cmd" using the leaked address of the stack (the last pointer is left NULL).  
 Then I populate a0, a1, a2 with rispectively: address of "/bin/bash", address of the array populated at the preceeding step and the address of the NULL entry of the array.  
 At this point I can launch the syscall 4011 (execve) to execute my bash command.  
+
+# Comments  
+- On very old versions like 6.18, the stack size is not 128KB, so the exploit doesn't work, i'll fix it in the future  
+- If the exploit doesn't work on recent version, make it crash with CrashPOC 3 or 4 times, then launch immediately StackClash and it will work  
