@@ -1,11 +1,15 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
+"""RouterOS binary extractor by BigNerd95"""
+import io
+import sys
 
-# RouterOS binary extractor by BigNerd95
+import requests
+import PySquashfsImage
 
-import requests, sys, io, PySquashfsImage
 
 MTDL_URL = "https://download2.mikrotik.com/routeros/"
 SQFS_OFFSET = 0x1000
+
 
 def download_ROS(version, arch):
     url = MTDL_URL + version + "/routeros-" + arch + "-" + version + ".npk"
@@ -14,6 +18,7 @@ def download_ROS(version, arch):
         return fw.content
     else:
         raise Exception("Error downloading firmware!")
+
 
 def get_binary(fw, path):
     fwfd = io.BytesIO(fw)
@@ -25,6 +30,7 @@ def get_binary(fw, path):
             return f.getContent()
 
     raise Exception("Path not found!")
+
 
 def main(version, arch, binary_path, save_name):
     print("Downloading firmware...")
@@ -44,11 +50,12 @@ def main(version, arch, binary_path, save_name):
     with open(save_name, "wb") as f:
         f.write(binary)
 
-    print(binary_path, "saved as", save_name)
+    print(binary_path + "saved as" + save_name)
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 5:
         main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
     else:
-        print("Usage:", sys.argv[0], "VERSION ARCH BIN_PATH_TO_EXTRACT SAVE_NAME")
-        print("Example:", sys.argv[0], "6.38.4 x86 /nova/bin/www www_6384_x86")
+        print("Usage: \n\tpython %s VERSION ARCH BIN_PATH_TO_EXTRACT SAVE_NAME\n" % sys.argv[0])
+        print("Example:\n\tpython %s 6.38.4 x86 /nova/bin/www www_6384_x86" % sys.argv[0])
