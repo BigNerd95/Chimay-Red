@@ -1,0 +1,4 @@
+ropper==1.11.3
+requests==2.18.4
+pwntools==3.11.0
+PySquashfsImage==0.6
