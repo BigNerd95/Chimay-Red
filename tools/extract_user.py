@@ -43,13 +43,17 @@ def get_pair(data):
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
-        user_file = open(sys.argv[1], "rb").read()
+        if sys.argv[1] == "-":
+            user_file = sys.stdin.buffer.read()
+        else:
+            user_file = open(sys.argv[1], "rb").read()
+        
         user_pass = get_pair(user_file)
         for u, p in user_pass:
             print("User:", u)
             print("Pass:", p)
-            print()
+            print() 
     else:
         print("Usage:")
-        print(sys.argv[0], "user.dat")
-
+        print("\tFrom file: \t", sys.argv[0], "user.dat")
+        print("\tFrom stdin:\t", sys.argv[0], "-")
