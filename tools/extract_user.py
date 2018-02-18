@@ -7,7 +7,7 @@ def decrypt_password(user, pass_enc):
 
     passw = ""
     for i in range(0, len(pass_enc)):
-        passw += chr(pass_enc[i] ^ key[i])
+        passw += chr(pass_enc[i] ^ key[i % len(key)])
     
     return passw.split("\x00")[0]
 
