@@ -117,11 +117,11 @@ MikroTik v6.38.4 (stable)
 / #
 ```
 # FAQ
-#### Where does one get the chimay-red.py file, that this tool kit relies on?  
+## Where does one get the chimay-red.py file, that this tool kit relies on?  
 This is a reverse engineering of leaked CIA documentation.  
 There is no chimay-red.py publicly available.  
 
-#### I can't understand how the stack clash work.
+## I can't understand how the stack clash work.
 I'll update the PDF as soon as I have enough time, anyway:  
 We know that:  
 - each thread has 128KB of stack  
@@ -132,16 +132,41 @@ If we send a Content-Length bigger than 128KB to socket of thread A, the Stack P
 So now we can write a ROP chain in the stack of thread B starting from a position where a return address is saved.  
 When we close the socket of thread B, the ROP chain will start because the function that is waiting for data will return (but on our modified address).
 
-##### x86  
+#### x86  
 
 The ROP chain construct "system" string and "your_shell_cmd" string looking for chunks of strings inside the binary and concatenating them in an unused area of memory.  
 Then we return to "dlsym" function (present in the PLT) passing as argument the address of just created string "system" to find the address of "system" function.   
 Now we can return to the address of system passing as argument the address of the just created string "your_shell_cmd".  
 
-##### mips
+#### mips
 DEP is disabled on this version of www, so I can execute the stack.  
 But I cannot use system function because "/bin/sh" is not present on the file system, so I used execve directly.  
 A small ROP (3 gadgets) find the address of a location on the stack (where I put the shell code), and then jump to that address.  
-In the shell code I populate an array of 4 pointers with the address of the strings "/bin/bash", "-c", "your_shell_cmd" using the leaked address of the stack (the last pointer is left NULL).  
+
+In the shell code I make a fork (syscall 4002), then I populate an array of 4 pointers with the address of the strings "/bin/bash", "-c", "your_shell_cmd" using the leaked address of the stack (the last pointer is left NULL).  
 Then I populate a0, a1, a2 with rispectively: address of "/bin/bash", address of the array populated at the preceeding step and the address of the NULL entry of the array.  
 At this point I can launch the syscall 4011 (execve) to execute my bash command.  
+
+## Not wokring on some versions  
+I have no time to test all RouterOS versions.  
+On all stable version i tested (6.28, 6.27, 6.37.2, 6.37.3, 6.38.3, 6.38.4) it is working (both x86 and mipsbe).  
+On 6.37.5 it isn't working, but I noticed that this is a bugfix version.  
+Maybe on all bugfix version my tool is not working (not verified).  
+
+## HTTPS  
+I implemented the HTTPS version using `ssl.wrap_socket` and it is working if www has just started.  
+But if www has been running for some time I have to make it crash before running the exploit.  
+If I make www crash with HTTPS enabled, then www doesn't bind on HTTPS socket any more...  
+So for now I didn't include HTTPS support in the public release because in most scenario it is totally NOT working and make the web server unreachable after the crash.  
+
+## Architecture discovery  
+I didn't find a way to discover the architecture via the web server (www).  
+I think the CIA tool was using MNDP (Mikrotik Network Discovery Protocol), but it is only available in the same LAN, so it will not work from a remote network.  
+So I didn't include the architecture discovery in my tool.  
+You have to test all the archtecture if you are remotely or use a MNDP tool if you in the same LAN (there are a lots of MNDP tools on github).  
+
+## Others architectures than x86 and MIPSBE
+I have no boards based on ARM, TILE, SMIPS, PowerPC, MMIPS and MIPSLE, so I can't debug the vulnerability on these versions.  
+
+(Probably for the last one it is enough to convert the mipsbe addresses in little endian).  
+If you can support other arch then send a PR!  
