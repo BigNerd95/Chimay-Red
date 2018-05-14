@@ -3,10 +3,47 @@ Chimay-Red
 
 Reverse engineering of Mikrotik exploit from Vault 7 CIA Leaks
 
-See the [PDF](docs/ChimayRed.pdf) for more info
+https://wikileaks.org/ciav7p1/cms/page_16384604.html
 
-# Vulnerable versions
-Until RouterOS 6.38.4
+
+## Vulnerable versions
+[Mikrotik download archive](https://mikrotik.com/download/archive)
+
+|Version    |Release date |Vulnerable |
+|-----------|-------------|-----------|
+|6.38.5 		|2017-03-09   |           |
+|6.38.4 		|2017-03-08   |           |
+|6.38.3 		|2017-02-22   |           |
+|6.38.2 		|2017-02-22   |           |
+|6.38.1 		|2017-01-16   |           |
+|6.38 		  |2017-01-02   |           |
+|6.37.3 		|2016-11-30   |           |
+|6.37.2 		|2016-11-21   |           |
+|6.37.1 		|2016-11-09   |           |
+|6.37 		  |2016-09-23   |           |
+|6.36.3 		|2016-09-06   |           |
+|6.36.2 		|2016-08-24   |           |
+|6.36.1 		|2016-08-24   |           |
+|6.36 		  |2016-07-21   |           |
+|6.35.4 		|2016-06-13   |           |
+|6.35.2 		|2016-05-06   |           |
+|6.35.1 		|2016-04-26   |           |
+|6.35 		  |2016-04-15   |           |
+|6.34.4 		|2016-03-30   |           |
+|6.34.3 		|2016-03-11   |           |
+|6.34.2 		|2016-02-19   |           |
+|6.34.1 		|2016-02-04   |           |
+|6.34 		  |2016-01-29   |           |
+|6.33.6 		|2016-01-29   |           |
+|6.33.5 		|2016-01-20   |           |
+|6.33.3 		|2015-12-04   |           |
+|6.33.2 		|2015-12-01   |           |
+|6.33.1 		|2015-11-19   |           |
+|6.33 		  |2015-11-06   |           |
+|6.32.2 		|2015-09-21   |           |
+|6.32.1 		|2015-09-08   |           |
+|6.30 		  |2015-07-08   |           |
+
 
 What's new in 6.38.5 (2017-Mar-09 11:32):
 !) www - fixed http server vulnerability;
@@ -41,7 +78,7 @@ Install required by exploit Python libraries within just created virtual environ
 Install Capstone library which is required by Python **ropper** package:
 
     # Debian or Ubuntu
-    sudo apt-get install libcapstone3
+    sudo apt-get install libcapstone3 liblzma-dev
 
 
 # Working exploits
