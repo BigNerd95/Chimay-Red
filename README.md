@@ -165,8 +165,8 @@ I think the CIA tool was using MNDP (Mikrotik Network Discovery Protocol), but i
 So I didn't include the architecture discovery in my tool.  
 You have to test all the archtecture if you are remotely or use a MNDP tool if you in the same LAN (there are a lots of MNDP tools on github).  
 
-## Others architectures than x86 and MIPSBE
-I have no boards based on ARM, TILE, SMIPS, PowerPC, MMIPS and MIPSLE, so I can't debug the vulnerability on these versions.  
+## Others architectures than x86 and MIPSBE/SMIPS
+I have no boards based on ARM, TILE, PowerPC and MMIPS, so I can't debug the vulnerability on these versions.  
 
 (Probably for the last one it is enough to convert the mipsbe addresses in little endian).  
 If you can support other arch then send a PR!  
