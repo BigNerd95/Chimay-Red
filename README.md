@@ -140,9 +140,8 @@ sh: turning off NDELAY mode
 
 Got root ;-)
 
-cd /tmp
-chmod 777 busybox
-./busybox
+chmod 777 /ram/busybox
+/ram/busybox
 BusyBox v1.28.1 (2018-02-15 14:34:02 CET) multi-call binary.
 [...]
 ```
