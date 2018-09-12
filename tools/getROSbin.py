@@ -7,16 +7,27 @@ import requests, sys, io, PySquashfsImage
 MTDL_URL = "https://download2.mikrotik.com/routeros/"
 SQFS_OFFSET = 0x1000
 
-def download_ROS(version, arch):
+def download_ROS(version, arch, progress=True):
     url = MTDL_URL + version + "/routeros-" + arch + "-" + version + ".npk"
-    fw = requests.get(url, stream=True)
-    if fw.status_code == requests.codes.ok and len(fw.content) > 0:
-        return fw.content
+    fw = requests.get(url, headers={"User-Agent": "RouterOS 6.19"}, stream=True)
+    fwfd = io.BytesIO()
+    if fw.status_code == requests.codes.ok:
+        if progress:
+            size = int(fw.headers['content-length'])
+            for data in fw.iter_content(chunk_size=16*1024):
+                fwfd.write(data)
+                sys.stdout.write("\rDownloading firmware... %d%%" % (fwfd.tell()*100/size))
+                sys.stdout.flush()
+            print()
+        else:
+            print("Downloading firmware...")
+            sys.stdout.flush()
+            fwfd.write(fw.content)
+        return fwfd
     else:
         raise Exception("Error downloading firmware!")
 
-def get_binary(fw, path):
-    fwfd = io.BytesIO(fw)
+def get_binary(fwfd, path):
     sqfs = PySquashfsImage.SquashFsImage(offset=SQFS_OFFSET)
     sqfs.setFile(fwfd)
 
@@ -27,7 +38,6 @@ def get_binary(fw, path):
     raise Exception("Path not found!")
 
 def main(version, arch, binary_path, save_name):
-    print("Downloading firmware...")
     try:
         fw = download_ROS(version, arch)
     except Exception as e:
