@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# RouterOS password decoder by BigNerd95
+
 import sys, hashlib
 
 def decrypt_password(user, pass_enc):
