@@ -146,6 +146,12 @@ BusyBox v1.28.1 (2018-02-15 14:34:02 CET) multi-call binary.
 [...]
 ```
 
+### Hide logs
+To remove logs after your post exploitation actions
+```
+/ # /nova/bin/info "for i from=1 to=1000 do={ :log info message='Some dummy info' }"
+```
+
 # FAQ
 ## Where does one get the chimay-red.py file, that this tool kit relies on?  
 This is a reverse engineering of leaked CIA documentation.  
