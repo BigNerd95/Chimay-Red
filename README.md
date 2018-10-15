@@ -147,6 +147,8 @@ BusyBox v1.28.1 (2018-02-15 14:34:02 CET) multi-call binary.
 ```
 
 ### Change boot logo
+Only RGB Bitmap 24 bit (not compressed) files are supported.  
+Max size: 160px width, 76px height  
 ```
 $ ./StackClash_resock_mips.py 192.168.8.1 80 www_binary docs/logo.bmp /flash/boot/logo.bmp  
 [...]
