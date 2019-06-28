@@ -224,3 +224,6 @@ I have no boards based on ARM, TILE, PowerPC and MMIPS, so I can't debug the vul
 
 (Probably for the last one it is enough to convert the mipsbe addresses in little endian).  
 If you can support other arch then send a PR!  
+
+## Firmware upgrade persistence
+It's possibile to make your rootkit persistent to firmware upgrade by customizing the initramfs...[more info](https://yassine.tioual.com/index.php/2017/04/26/backdoor-initramfs-and-make-your-rootkit-persistent/)
